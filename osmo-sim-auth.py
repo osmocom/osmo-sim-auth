@@ -65,12 +65,18 @@ def handle_sim(options, rand_bin):
 		exit(1)
 
 	imsi = s.get_imsi()
-	print "Testing SIM card with IMSI %s" % imsi
+	if not options.ipsec:
+		print "Testing SIM card with IMSI %s" % imsi
+		print "\nGSM Authentication"
 
-	print "\nGSM Authentication"
 	ret = s.run_gsm_alg(rand_bin)
-	print "SRES:\t%s" % b2a_hex(byteToString(ret[0]))
-	print "Kc:\t%s" % b2a_hex(byteToString(ret[1]))
+
+	if not options.ipsec:
+		print "SRES:\t%s" % b2a_hex(byteToString(ret[0]))
+		print "Kc:\t%s" % b2a_hex(byteToString(ret[1]))
+
+	if options.ipsec:
+		print "1%s@uma.mnc%s.mcc%s.3gppnetwork.org,%s,%s,%s" % (imsi, imsi[3:6], imsi[0:3], b2a_hex(byteToString(rand_bin)), b2a_hex(byteToString(ret[0])), b2a_hex(byteToString(ret[1])))
 
 
 if __name__ == "__main__":
@@ -85,6 +91,9 @@ if __name__ == "__main__":
 	parser.add_option("-s", "--sim", dest="sim",
 			  help="SIM mode (default: USIM)",
 			  action="store_true", default=False)
+	parser.add_option("-I", "--ipsec", dest="ipsec",
+			  help="IPSEC mode for strongswan triplets.dat",
+			  action="store_true")
 
 	(options, args) = parser.parse_args()
 
