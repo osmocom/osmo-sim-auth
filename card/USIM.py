@@ -242,8 +242,7 @@ class USIM(UICC):
         # prepare input data for authentication
         if ctx in ('3G', 'VGCS', 'GBA', 'MBMS') and len(RAND) != 16 \
         and len(AUTN) != 16: 
-            if self.dbg: 
-                print '[WNG] authenticate: bad parameters'
+            print '[ERR] missing parameters or wrong length'
             return None
         
         inp = []
@@ -265,8 +264,7 @@ class USIM(UICC):
         # to avoid desynchronizing our USIM counter
             P2 = 0x80
             if len(RAND) != 16: 
-                if self.dbg: 
-                    print '[WNG] bad parameters'
+                print '[ERR] RAND has wrong length (%d, should be 16)' % len(RAND)
                 return None
             # override input value for 2G authent
             inp = [len(RAND)] + RAND
@@ -284,11 +282,14 @@ class USIM(UICC):
                     return values
                 # not adapted to 2G context with Kc, RES: to be confirmed...
                 if val[0] == 0xDB:
-                    if P2 == 0x81 and self.dbg: 
-                        print '[+] Successful 3G authentication. ' \
-                              'Get [RES, CK, IK(, Kc)]' 
-                    elif P2 == 0x84 and self.dbg: 
-                        print '[+] Successful GBA authentication. Get [RES]'
+                    if self.dbg:
+                        if P2 == 0x81:
+                            print '[+] Successful 3G authentication. ' \
+                                  'Get [RES, CK, IK(, Kc)]'
+                        elif P2 == 0x84:
+                            print '[+] Successful GBA authentication. Get [RES]'
+                        else:
+                            print '[+] response: %s' % hex(val)
                     values = LV_parser(val[1:])
                     # returned values can be (RES, CK, IK) or (RES, CK, IK, Kc)
                     return values
@@ -297,6 +298,8 @@ class USIM(UICC):
                         print '[+] Synchronization failure. Get [AUTS]'
                     values = LV_parser(val[1:])
                     return values
+                elif self.dbg:
+                    print '[+] response: %s' % hex(val)
         #else:
         if self.dbg: 
             print '[+] authentication error: %s' % self.coms()
@@ -398,5 +401,5 @@ class USIM(UICC):
         #bf from MF, and recursively under each DF
         #bf from each AID and recursively under each DF in AID
         pass
-    
 
+# vim: tabstop=4 shiftwidth=4 expandtab
