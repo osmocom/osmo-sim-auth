@@ -29,6 +29,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 from card.ICC import ISO7816
 from card.FS import SIM_FS
 from card.utils import *
+from binascii import *
 
 
 class SIM(ISO7816):
@@ -50,6 +51,18 @@ class SIM(ISO7816):
             print '[DBG] type definition: %s' % type(self)
             print '[DBG] CLA definition: %s' % hex(self.CLA)
         
+        self.caller = {
+        'KC' : self.get_Kc,
+        'IMSI' : self.get_imsi,
+        'LOCI' : self.get_loci,
+        'HPPLMN' : self.get_hpplmn,
+        'PLMN_SEL' : self.get_plmnsel,
+        'ACC' : self.get_acc,
+        'ICCID' : self.get_iccid,
+        'FPLMN' : self.get_fplmn,
+        'MSISDN' : self.get_msisdn,
+        'SMSP' : self.get_smsp,
+        }
     
     def sw_status(self, sw1, sw2):
         '''
@@ -264,11 +277,317 @@ class SIM(ISO7816):
         
         # and parse the received data into the IMSI structure
         if 'Data' in imsi.keys() and len(imsi['Data']) == 9:
+
+            if self.dbg:
+                print "[DBG] International Mobile Subscriber Identity (IMSI): %s " % decode_BCD(imsi['Data'])[3:]
+
             return decode_BCD(imsi['Data'])[3:]
         
         # if issue with the content of the DF_IMSI file
         if self.dbg: 
             print '[DBG] %s' % self.coms()
         return None
+
+    # This contains Ciphering Key for GSM
+    # File Size = 9 bytes
+    # select Kc to get Kc (1-8 bytes) and
+    # cihering key sequence number (9th byte)
+    # returns bytes Kc on success or None on error
+    def get_Kc(self):
+        self.select([0x7F, 0x20])
+        if self.coms()[2] != (0x90, 0x00):
+            if self.dbg:
+                print '[DBG] %s' % self.coms()
+            return None
+
+        Kc = self.select([0x6F, 0x20])
+        if self.coms()[2] != (0x90, 0x00):
+            if self.dbg:
+                print '[DBG] %s' % self.coms()
+            return None
+
+        if 'Data' in Kc.keys() and len(Kc['Data']) == 9:
+            if self.dbg:
+                print "[DBG] Ciphering Key (Kc): %s" % b2a_hex(byteToString(Kc['Data'][0:8]))
+                print "[DBG] Ciphering Key Sequence Number (n): %s " % Kc['Data'][8]
+            return Kc['Data']
+        else:
+            return None
     
+    # EF loci contains location information
+    # This conatins TMSI, LAI, TMSI TIME, and Location update status
+    # and prints the information
+    # File Size = 11 bytes
+    # select LOCI to get TMSI(1-4 bytes), LAI(5-9 bytes), TMSI TIME (10th byte)
+    # LOCI includes Mobile country code (MCC), Mobile network code (MNC),
+    # and Locatio area code (LAC)
+    # and location update status (11th byte)
+    # returns bytes LOCI on success or None on error
+    def get_loci(self):
+        self.select([0x7F, 0x20])
+        if self.coms()[2] != (0x90, 0x00):
+            if self.dbg:
+                print '[DBG] %s' % self.coms()
+            return None
+
+        loci = self.select([0x6F, 0x7E])
+        if self.coms()[2] != (0x90, 0x00):
+            if self.dbg:
+                print '[DBG] %s' % self.coms()
+            return None
+
+        if 'Data' in loci.keys() and len(loci['Data']) == 11:
+            loci = loci['Data']
+
+            if self.dbg:
+                print "[DBG] Temporary Mobile Subscriber Identity (TMSI): %s" % b2a_hex(byteToString(loci[0:4]))
+                LAI = loci[4:9]
+                print "[DBG] Location Area Identity hex (LAI): %s" % b2a_hex(byteToString(LAI))
+                MCC = ((LAI[0] & 0x0f) << 8) | (LAI[0] & 0xf0) | (LAI[1] & 0x0f)
+                MNC = ((LAI[2] & 0x0f) << 8) | (LAI[2] & 0xf0) | ((LAI[1] & 0xf0) >> 4)
+                LAC = LAI[3:5]
+                print "[DBG] Mobile Country Code (MCC): %s " % format(int(hex(MCC),16),"x")
+                print "[DBG] Mobile Country Code (MNC): %s " % format(int(hex(MNC),16),"x")
+                print "[DBG] Location Area Code (LAC): %s " % b2a_hex(byteToString(LAC))
+                print "[DBG] TMSI TIME: %s" % loci[9]
+                print "[DBG] Location Update Status: %s" % loci[10]
+
+            return loci
+        else:
+            return None
+
+    # EF plmnsel contains Public Land Mobile Network records
+    # File Size: 3n (n >=8)
+    # Contents Mobile country code (MCC) & Mobile Netwokr code (MNC) (total 3 bytes)
+    # excess bytes set to 'FF'
+    # returns bytes PLMNSel on success or None on error
+    def get_plmnsel(self):
+        self.select([0x7F, 0x20])
+        if self.coms()[2] != (0x90, 0x00):
+            if self.dbg:
+                print '[DBG] %s' % self.coms()
+            return None
+
+        plmnsel = self.select([0x6F, 0x30])
+        if self.coms()[2] != (0x90, 0x00):
+            if self.dbg:
+                print '[DBG] %s' % self.coms()
+            return None
+
+        if 'Data' in plmnsel.keys():
+            plmnsel = plmnsel['Data']
+
+            if self.dbg:
+                print "[DBG] Stored PLMN selector:\tMCC | MNC\n"
+                index = 0
+                while len(plmnsel) > 3 and index < len(plmnsel):
+                    if plmnsel[index] == 0xFF and plmnsel[index+1] == 0xFF and plmnsel[index+2] == 0xFF:
+                        break
+                    else:
+                        MCC = ((plmnsel[index] & 0x0f) << 8) | (plmnsel[index] & 0xf0) | (plmnsel[index+1] & 0x0f)
+                        MNC = ((plmnsel[index+2] & 0x0f) << 8) | (plmnsel[index+2] & 0xf0) | ((plmnsel[index+1] & 0xf0) >> 4)
+                        if (MNC & 0x000f) == 0x000f:
+                            MNC = MNC >> 4
+                            print "[DBG] \t\t\t\t%03x   %02x" %(MCC, MNC)
+                        else:
+                            print "[DBG] \t\t\t\t%03x   %03x" %(MCC, MNC)
+                        index +=3
+
+            return plmnsel
+        else:
+            return None
+
+    # select DF_GSM for Higher Priority PLMN search period
+    # File Size: 1 byte
+    # Contains the interval of time between searches for a higher priority PLMN
+    # 'YZ': (16Y + Z) minutes
+    # returns byte on success or None on error
+    def get_hpplmn(self):
+        self.select([0x7F, 0x20])
+        if self.coms()[2] != (0x90, 0x00):
+            if self.dbg:
+                print '[DBG] %s' % self.coms()
+            return None
+
+        hpplmn = self.select([0x6F, 0x31])
+        if self.coms()[2] != (0x90, 0x00):
+            if self.dbg:
+                print '[DBG] %s' % self.coms()
+            return None
+
+        if 'Data' in hpplmn.keys() and len(hpplmn['Data']) == 1:
+            hpplmn = hpplmn['Data']
+
+            if self.dbg:
+                if hpplmn[0] < 9:
+                    print "[DBG] Higher Priority PLMN search period %s min" % hpplmn[0]
+                else:
+                    hpplmn_val = list(str(hpplmn[0]))
+                    interval = (16 * int(hpplmn_val[0])) + int(hpplmn_val[1])
+                    print "[DBG] Higher Priority PLMN search period %s min" % interval
+
+            return hpplmn
+        else:
+            return None
+
+    # select DF_GSM for accessing Access control class
+    # The access control class is a parameter to control the RACH utilization
+    # File Size = 2 bytes
+    # returns byte on success or None on error
+    def get_acc(self):
+        self.select([0x7F, 0x20])
+        if self.coms()[2] != (0x90, 0x00):
+            if self.dbg:
+                print '[DBG] %s' % self.coms()
+            return None
+
+        acc = self.select([0x6F, 0x78])
+        if self.coms()[2] != (0x90, 0x00):
+            if self.dbg:
+                print '[DBG] %s' % self.coms()
+            return None
+
+        if 'Data' in acc.keys() and len(acc['Data']) == 2:
+            acc = acc['Data']
+
+            if self.dbg:
+                print "[DBG] Access Control Classes %s " % b2a_hex(byteToString(acc))
+
+            return acc
+        else:
+            return None
+
+    # select DF_TELECOM for Mobile Station Integrated Services Digital Network (MSISDN)
+    # Record Length: X + 14 bytes
+    # Type of number (TON 4 bits) and numbering plan identification (NPI 3 bits) 8th bt is always 1 = 1 byte
+    # Dialling Number aka Calling Number
+    # returns an array of msisdn's or None on error
+    def get_msisdn(self):
+        self.select([0x7F, 0x10])
+        if self.coms()[2] != (0x90, 0x00):
+            if self.dbg:
+                print '[DBG] %s' % self.coms()
+            return None
+
+        msisdn = self.select([0x6F, 0x40])
+        if self.coms()[2] != (0x90, 0x00):
+            if self.dbg:
+                print '[DBG] %s' % self.coms()
+            return None
+
+        if 'Data' in msisdn.keys():
+            msisdns = msisdn['Data']
+
+            if self.dbg:
+                for msisdn in msisdns:
+                    rec_length = len(msisdn) - 14
+                    len_bcd_number = msisdn[rec_length]
+
+                    TON_NPI = msisdn[rec_length + 1 : rec_length + 2][0]
+                    npi = TON_NPI & 0x0F
+                    ton  = (TON_NPI >> 4) & 0x07
+                    print "[DBG] Type of number (TON): %s " % ton
+                    print "[DBG] Numbering plan identification (NPI): %s " % npi
+
+                    dialing_number = msisdn[rec_length + 2 : rec_length + len_bcd_number + 1]
+                    print "[DBG] Dialling Number: %s " % decode_BCD(dialing_number)[:-2]
+
+            return msisdns
+        else:
+            return None
+
+    # Short Message Service Parameters (SMSP)
+    # select DF_TELECOM for SIM card = 0x7f10
+    # Used preparation of mobile originated short messages
+    # It holds the settings for sending text message
+    # File Size = (28 + n) bytes
+    # returns an array of smsps or None on error
+    def get_smsp(self):
+        self.select([0x7F, 0x10])
+        if self.coms()[2] != (0x90, 0x00):
+            if self.dbg:
+                print '[DBG] %s' % self.coms()
+            return None
+
+        smsp = self.select([0x6F, 0x42])
+        if self.coms()[2] != (0x90, 0x00):
+            if self.dbg:
+                print '[DBG] %s' % self.coms()
+            return None
+
+        if 'Data' in smsp.keys():
+            smsps = smsp['Data']
+
+            if self.dbg:
+                for smsp in smsps:
+                    rec_length = len(smsp) - 28
+                    rec_len = smsp[rec_length+13]
+                    service_center_address = decode_BCD(smsp[rec_length+15:rec_length+rec_len + 14])[:-2]
+                    print "[DBG] TP-Service Centre Address: %s " % service_center_address
+
+            return smsps
+        else:
+            return None
+
+    # This EF contains 4 Forbidden PLMN 3 bytes each
+    # File Size 12 bytes
+    # Unused bytes are set to 'FF'
+    # returns byte on success or None on error
+    def get_fplmn(self):
+        self.select([0x7F, 0x20])
+        if self.coms()[2] != (0x90, 0x00):
+            if self.dbg:
+                print '[DBG] %s' % self.coms()
+            return None
+
+        fplmn = self.select([0x6F, 0x7b])
+        if self.coms()[2] != (0x90, 0x00):
+            if self.dbg:
+                print '[DBG] %s' % self.coms()
+            return None
+
+        if 'Data' in fplmn.keys() and len(fplmn['Data']) == 12:
+            fplmn = fplmn['Data']
+
+            if self.dbg:
+                print "[DBG] Stored FPLMN selector:\tMCC | MNC\n"
+                index = 0
+                while len(fplmn) > 3 and index < len(fplmn):
+                    if fplmn[index] == 0xFF and fplmn[index+1] == 0xFF and fplmn[index+2] == 0xFF:
+                        break
+                    else:
+                        MCC = ((fplmn[index] & 0x0f) << 8) | (fplmn[index] & 0xf0) | (fplmn[index+1] & 0x0f)
+                        MNC = ((fplmn[index+2] & 0x0f) << 8) | (fplmn[index+2] & 0xf0) | ((fplmn[index+1] & 0xf0) >> 4)
+                        if (MNC & 0x000f) == 0x000f:
+                            MNC = MNC >> 4
+                            print "[DBG] \t\t\t\t%03x   %02x" %(MCC, MNC)
+                        else:
+                            print "[DBG] \t\t\t\t%03x   %03x" %(MCC, MNC)
+                        index +=3
+
+
+            return fplmn
+        else:
+            return None
+
+    # This file holds a unique smart card identification number.
+    # file Size = 10 bytes (BCD encoded)
+    # Left justified and right-padded with 'F'
+    # returns bytes on success or None on error
+    def get_iccid(self):
+        iccid = self.select([0x2F, 0xE2])
+        if self.coms()[2] != (0x90, 0x00):
+            if self.dbg:
+                print '[DBG] %s' % self.coms()
+            return None
+
+        if 'Data' in iccid.keys() and len(iccid['Data']) == 10:
+            iccid = iccid['Data']
+
+            if self.dbg:
+                print "[DBG] identification (ICCID): %s" % decode_BCD(iccid)
+
+            return iccid
+        else:
+            return None
 

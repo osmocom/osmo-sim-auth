@@ -78,6 +78,16 @@ def handle_sim(options, rand_bin):
 	if options.ipsec:
 		print "1%s@uma.mnc%s.mcc%s.3gppnetwork.org,%s,%s,%s" % (imsi, imsi[3:6], imsi[0:3], b2a_hex(byteToString(rand_bin)), b2a_hex(byteToString(ret[0])), b2a_hex(byteToString(ret[1])))
 
+def handle_sim_info(options):
+	s= SIM()
+	if not s:
+		print "Error opening SIM"
+		exit(1)
+
+	if options.debug:
+		s.dbg = 1
+
+	s.caller.get(options.param)()
 
 if __name__ == "__main__":
 	parser = OptionParser()
@@ -94,8 +104,14 @@ if __name__ == "__main__":
 	parser.add_option("-I", "--ipsec", dest="ipsec",
 			  help="IPSEC mode for strongswan triplets.dat",
 			  action="store_true")
+	parser.add_option("-p", "--param", dest="param",
+			  help="Retrieve SIM card parameter (mode: SIM) KC|IMSI|LOCI|HPPLMN|PLMN_SEL|ICCID|ACC|FPLMN|MSISDN|SMSP")
 
 	(options, args) = parser.parse_args()
+
+	if options.param:
+		handle_sim_info(options)
+		exit(2)
 
 	if not options.rand:
 		print "You have to specify RAND"
