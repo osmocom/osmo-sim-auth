@@ -50,7 +50,7 @@ We assume that you have
 
 * A smart card reader compatible with pcsc-lite
 * Installed python program and pyscard library
-
+* You may also need to install and start the pcscd service
 
 ### smart card reader
 
@@ -58,8 +58,10 @@ Any reader supported by pcsc-lite will work.  However, a reader
 compatible with the USB CCID device class is much recommended.
 
 Please verify that the hardware and driver setup is working, e.g. by
-using the 'pcsc_scan' tool included with pcsc-lite.  You should get an
-output like:
+using the 'pcsc_scan' tool included with pcsc-lite. You may also need
+to install the 'pcscd' service.
+
+You should get an output like:
 ```
 V 1.4.17 (c) 2001-2009, Ludovic Rousseau <ludovic.rousseau@free.fr>
 Compiled with PC/SC lite version: 1.5.5
@@ -97,10 +99,26 @@ setup are likely wrong.
 
 ### pyscard
 
-pyscard can be installed from packages of major Linux distributions.
+pyscard can be installed from packages of major Linux distributions,
+for example 'apt-get install python-pyscard'.
 
 If you want to build it from source, it is available from
 <http://pyscard.sourceforge.net/>
+
+### pcscd
+
+If you encounter errors like
+
+  smartcard.pcsc.PCSCExceptions.EstablishContextException: 'Failure to establish context: Service not available.'
+
+or
+
+  SCardEstablishContext: Service not available.
+
+you may have to install and run the pcscd service, for example:
+
+  apt-get install pcscd
+  systemctl start pcscd
 
 
 ## running osmo-sim-auth
