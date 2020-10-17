@@ -77,8 +77,8 @@ def handle_sim(options, rand_bin):
     ret = s.run_gsm_alg(rand_bin)
 
     if not options.ipsec:
-        print("SRES:\t%s" % b2a_hex(byteToString(ret[0])))
-        print("Kc:\t%s" % b2a_hex(byteToString(ret[1])))
+        print("SRES:\t%s" % byteToHex(ret[0]))
+        print("Kc:\t%s" % byteToHex(ret[1]))
 
     if options.ipsec:
         print("1%s@uma.mnc%s.mcc%s.3gppnetwork.org,%s,%s,%s" % (imsi, imsi[3:6], imsi[0:3], b2a_hex(byteToString(rand_bin)), b2a_hex(byteToString(ret[0])), b2a_hex(byteToString(ret[1]))))
