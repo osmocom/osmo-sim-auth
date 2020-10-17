@@ -42,7 +42,7 @@ def handle_usim(options, rand_bin, autn_bin):
 
     print("\nUMTS Authentication")
     ret = u.authenticate(rand_bin, autn_bin, ctx='3G')
-    if ret == None:
+    if ret is None:
         print("UMTS Authentication failed")
         exit(1)
     if len(ret) == 1:
@@ -128,7 +128,7 @@ if __name__ == "__main__":
     if options.autn:
         autn_bin = stringToByte(a2b_hex(options.autn))
 
-    if options.sim == True:
+    if options.sim is True:
         handle_sim(options, rand_bin)
     else:
         if not options.autn:
