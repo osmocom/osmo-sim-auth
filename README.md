@@ -7,7 +7,7 @@ card.
 osmo-sim-auth is part of the [Osmocom](https://osmocom.org/) Open Source
 Mobile Communications projects.
 
-## iHomepage
+## Homepage
 
 The official homepage of the project is
 <http://osmocom.org/projects/osmo-sim-auth/wiki>
