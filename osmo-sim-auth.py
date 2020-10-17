@@ -64,7 +64,7 @@ def handle_usim(options, rand_bin, autn_bin):
 
 
 def handle_sim(options, rand_bin):
-    s= SIM()
+    s = SIM()
     if not s:
         print("Error opening SIM")
         exit(1)
@@ -85,7 +85,7 @@ def handle_sim(options, rand_bin):
 
 
 def handle_sim_info(options):
-    s= SIM()
+    s = SIM()
     if not s:
         print("Error opening SIM")
         exit(1)
