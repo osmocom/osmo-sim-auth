@@ -27,6 +27,7 @@ from optparse import OptionParser
 from card.USIM import USIM
 from card.SIM import SIM
 
+
 def handle_usim(options, rand_bin, autn_bin):
     u = USIM()
     if not u:
@@ -61,6 +62,7 @@ def handle_usim(options, rand_bin, autn_bin):
     print("SRES:\t%s" % b2a_hex(byteToString(ret[0])))
     print("Kc:\t%s" % b2a_hex(byteToString(ret[1])))
 
+
 def handle_sim(options, rand_bin):
     s= SIM()
     if not s:
@@ -81,6 +83,7 @@ def handle_sim(options, rand_bin):
     if options.ipsec:
         print("1%s@uma.mnc%s.mcc%s.3gppnetwork.org,%s,%s,%s" % (imsi, imsi[3:6], imsi[0:3], b2a_hex(byteToString(rand_bin)), b2a_hex(byteToString(ret[0])), b2a_hex(byteToString(ret[1]))))
 
+
 def handle_sim_info(options):
     s= SIM()
     if not s:
@@ -91,6 +94,7 @@ def handle_sim_info(options):
         s.dbg = 1
 
     s.caller.get(options.param)()
+
 
 if __name__ == "__main__":
     parser = OptionParser()
@@ -131,4 +135,3 @@ if __name__ == "__main__":
             print("You have to specify AUTN")
             exit(2)
         handle_usim(options, rand_bin, autn_bin)
-
