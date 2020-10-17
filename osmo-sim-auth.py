@@ -35,7 +35,7 @@ def handle_usim(options, rand_bin, autn_bin):
         exit(1)
 
     if options.debug:
-        u.dbg = 2;
+        u.dbg = 2
 
     imsi = u.get_imsi()
     print("Testing USIM card with IMSI %s" % imsi)
