@@ -28,107 +28,107 @@ from card.USIM import USIM
 from card.SIM import SIM
 
 def handle_usim(options, rand_bin, autn_bin):
-	u = USIM()
-	if not u:
-		print("Error opening USIM")
-		exit(1)
+    u = USIM()
+    if not u:
+        print("Error opening USIM")
+        exit(1)
 
-	if options.debug:
-		u.dbg = 2;
+    if options.debug:
+        u.dbg = 2;
 
-	imsi = u.get_imsi()
-	print("Testing USIM card with IMSI %s" % imsi)
+    imsi = u.get_imsi()
+    print("Testing USIM card with IMSI %s" % imsi)
 
-	print("\nUMTS Authentication")
-	ret = u.authenticate(rand_bin, autn_bin, ctx='3G')
+    print("\nUMTS Authentication")
+    ret = u.authenticate(rand_bin, autn_bin, ctx='3G')
         if ret == None:
                 print("UMTS Authentication failed")
                 exit(1)
-	if len(ret) == 1:
-		print("AUTS:\t%s" % b2a_hex(byteToString(ret[0])))
-	else:
-		print("RES:\t%s" % b2a_hex(byteToString(ret[0])))
-		print("CK:\t%s" % b2a_hex(byteToString(ret[1])))
-		print("IK:\t%s" % b2a_hex(byteToString(ret[2])))
-		if len(ret) == 4:
-			print("Kc:\t%s" % b2a_hex(byteToString(ret[3])))
+    if len(ret) == 1:
+        print("AUTS:\t%s" % b2a_hex(byteToString(ret[0])))
+    else:
+        print("RES:\t%s" % b2a_hex(byteToString(ret[0])))
+        print("CK:\t%s" % b2a_hex(byteToString(ret[1])))
+        print("IK:\t%s" % b2a_hex(byteToString(ret[2])))
+        if len(ret) == 4:
+            print("Kc:\t%s" % b2a_hex(byteToString(ret[3])))
 
-	print("\nGSM Authentication")
-	ret = u.authenticate(rand_bin, autn_bin, ctx='2G')
-	if not len(ret) == 2:
-		print("Error during 2G authentication")
-		exit(1)
-	print("SRES:\t%s" % b2a_hex(byteToString(ret[0])))
-	print("Kc:\t%s" % b2a_hex(byteToString(ret[1])))
+    print("\nGSM Authentication")
+    ret = u.authenticate(rand_bin, autn_bin, ctx='2G')
+    if not len(ret) == 2:
+        print("Error during 2G authentication")
+        exit(1)
+    print("SRES:\t%s" % b2a_hex(byteToString(ret[0])))
+    print("Kc:\t%s" % b2a_hex(byteToString(ret[1])))
 
 def handle_sim(options, rand_bin):
-	s= SIM()
-	if not s:
-		print("Error opening SIM")
-		exit(1)
+    s= SIM()
+    if not s:
+        print("Error opening SIM")
+        exit(1)
 
-	imsi = s.get_imsi()
-	if not options.ipsec:
-		print("Testing SIM card with IMSI %s" % imsi)
-		print("\nGSM Authentication")
+    imsi = s.get_imsi()
+    if not options.ipsec:
+        print("Testing SIM card with IMSI %s" % imsi)
+        print("\nGSM Authentication")
 
-	ret = s.run_gsm_alg(rand_bin)
+    ret = s.run_gsm_alg(rand_bin)
 
-	if not options.ipsec:
-		print("SRES:\t%s" % b2a_hex(byteToString(ret[0])))
-		print("Kc:\t%s" % b2a_hex(byteToString(ret[1])))
+    if not options.ipsec:
+        print("SRES:\t%s" % b2a_hex(byteToString(ret[0])))
+        print("Kc:\t%s" % b2a_hex(byteToString(ret[1])))
 
-	if options.ipsec:
-		print("1%s@uma.mnc%s.mcc%s.3gppnetwork.org,%s,%s,%s" % (imsi, imsi[3:6], imsi[0:3], b2a_hex(byteToString(rand_bin)), b2a_hex(byteToString(ret[0])), b2a_hex(byteToString(ret[1]))))
+    if options.ipsec:
+        print("1%s@uma.mnc%s.mcc%s.3gppnetwork.org,%s,%s,%s" % (imsi, imsi[3:6], imsi[0:3], b2a_hex(byteToString(rand_bin)), b2a_hex(byteToString(ret[0])), b2a_hex(byteToString(ret[1]))))
 
 def handle_sim_info(options):
-	s= SIM()
-	if not s:
-		print("Error opening SIM")
-		exit(1)
+    s= SIM()
+    if not s:
+        print("Error opening SIM")
+        exit(1)
 
-	if options.debug:
-		s.dbg = 1
+    if options.debug:
+        s.dbg = 1
 
-	s.caller.get(options.param)()
+    s.caller.get(options.param)()
 
 if __name__ == "__main__":
-	parser = OptionParser()
-	parser.add_option("-a", "--autn", dest="autn",
-			  help="AUTN parameter from AuC")
-	parser.add_option("-r", "--rand", dest="rand",
-			  help="RAND parameter from AuC")
-	parser.add_option("-d", "--debug", dest="debug",
-			  help="Enable debug output",
-			  action="store_true")
-	parser.add_option("-s", "--sim", dest="sim",
-			  help="SIM mode (default: USIM)",
-			  action="store_true", default=False)
-	parser.add_option("-I", "--ipsec", dest="ipsec",
-			  help="IPSEC mode for strongswan triplets.dat",
-			  action="store_true")
-	parser.add_option("-p", "--param", dest="param",
-			  help="Retrieve SIM card parameter (mode: SIM) KC|IMSI|LOCI|HPPLMN|PLMN_SEL|ICCID|ACC|FPLMN|MSISDN|SMSP")
+    parser = OptionParser()
+    parser.add_option("-a", "--autn", dest="autn",
+              help="AUTN parameter from AuC")
+    parser.add_option("-r", "--rand", dest="rand",
+              help="RAND parameter from AuC")
+    parser.add_option("-d", "--debug", dest="debug",
+              help="Enable debug output",
+              action="store_true")
+    parser.add_option("-s", "--sim", dest="sim",
+              help="SIM mode (default: USIM)",
+              action="store_true", default=False)
+    parser.add_option("-I", "--ipsec", dest="ipsec",
+              help="IPSEC mode for strongswan triplets.dat",
+              action="store_true")
+    parser.add_option("-p", "--param", dest="param",
+              help="Retrieve SIM card parameter (mode: SIM) KC|IMSI|LOCI|HPPLMN|PLMN_SEL|ICCID|ACC|FPLMN|MSISDN|SMSP")
 
-	(options, args) = parser.parse_args()
+    (options, args) = parser.parse_args()
 
-	if options.param:
-		handle_sim_info(options)
-		exit(2)
+    if options.param:
+        handle_sim_info(options)
+        exit(2)
 
-	if not options.rand:
-		print("You have to specify RAND")
-		exit(2)
+    if not options.rand:
+        print("You have to specify RAND")
+        exit(2)
 
-	rand_bin = stringToByte(a2b_hex(options.rand))
-	if options.autn:
-		autn_bin = stringToByte(a2b_hex(options.autn))
+    rand_bin = stringToByte(a2b_hex(options.rand))
+    if options.autn:
+        autn_bin = stringToByte(a2b_hex(options.autn))
 
-	if options.sim == True:
-		handle_sim(options, rand_bin)
-	else:
-		if not options.autn:
-			print("You have to specify AUTN")
-			exit(2)
-		handle_usim(options, rand_bin, autn_bin)
+    if options.sim == True:
+        handle_sim(options, rand_bin)
+    else:
+        if not options.autn:
+            print("You have to specify AUTN")
+            exit(2)
+        handle_usim(options, rand_bin, autn_bin)
 
